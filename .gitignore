@@ -1,0 +1,17 @@
+# Flex / Bison generated files
+*.tab.c
+*.tab.h
+lex.yy.c
+
+# Bison debug
+*.output
+
+# Executabile
+comp
+*.out
+
+# Object files
+*.o
+
+# VS Code settings (optional)
+.vscode/
