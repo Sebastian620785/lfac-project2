@@ -1,0 +1,158 @@
+
+%{
+#include "comp.tab.h"
+#include <string>
+using namespace std;
+%}
+%option noyywrap
+%%
+/*cuvinte cheie -tipuri*/
+"int" {return INT;}
+"float" { return FLOAT;}
+"string" {return STRING;}
+"bool" {return BOOL;}
+/*cuvinte cheie -structuri*/
+"class"    { return CLASS; }
+"main"     { return MAIN; }
+"if"       { return IF; }
+"while"    { return WHILE; }
+"return"   { return RETURN; }
+"Print"    { return PRINT; }
+/*literali bool*/
+"true" {return TRUE;}
+"false" {return FALSE;}
+/*reguli pt literali*/
+
+[0-9]+"."[0-9]+ {yylval.Float = atof(yytext); return FLOAT_LITERAL;}
+[0-9]+ {yylval.Int = atoi(yytext); return INT_LITERAL;}
+
+/* Literal string: "ceva" */
+\"[^\n"]*\" {
+    std::string* s = new std::string(yytext + 1, strlen(yytext) - 2);
+    yylval.String = s;
+    return STRING_LITERAL;
+}
+[a-zA-Z_][a-zA-Z0-9_]* {yylval.String = new std::string(yytext); return ID;}
+[ \t] ;
+\n ;
+. {return yytext[0];}
+%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*ce apare in .h*/
+%code requires {
+  #include <string>
+  using namespace std;
+}
+
+%{
+#include <iostream>
+
+
+
+extern int yylex();
+ void yyerror(const char* s);
+%}
+/*ajunge  in .c*/
+
+
+%union {
+  int Int;
+  float Float;
+
+  string * String;
+}
+/*toate tipurile posibile pe care le pot avea simbolurile*/
+
+/*definesc tokeni*/
+%token INT FLOAT STRING BOOL
+%token CLASS MAIN IF WHILE RETURN PRINT
+/*definesc identificatorii si literalii*/
+%token<String> STRING_LITERAL
+%token<String>ID
+%token<Int> INT_LITERAL
+%token<Float> FLOAT_LITERAL
+%token TRUE FALSE
+
+%start program
+
+%%
+program:
+global_list main_block
+;
+global_list:
+   /*nimic*/
+   | global_list global_decl
+   ;
+
+   global_decl:
+   var_decl ';'
+   ;
+   main_block:
+   MAIN '{' stm_list '}'
+   ;
+   stm_list:
+   /*nimic*/
+   |stm_list statement
+   ;
+   statement:
+   print_stmt ';'
+   ;
+   print_stmt:
+   PRINT '(' expr ')'
+   ;
+   var_decl:
+   type ID
+   |type ID '=' expr
+   ;
+   type :
+   INT
+   |FLOAT
+   |STRING
+    |BOOL
+    ;
+    expr:
+    INT_LITERAL
+    |FLOAT_LITERAL
+    |STRING_LITERAL
+    |TRUE
+    |FALSE
+    ;
+%%
+
+void yyerror(const char* s) {
+  cout << "error:" << s;
+}
+
+int main(){
+ yyparse();
+}
+
+

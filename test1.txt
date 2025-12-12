@@ -1,0 +1,8 @@
+int x;
+float y;
+string s;
+bool ok;
+
+main {
+    Print(3);
+}

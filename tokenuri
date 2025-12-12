@@ -1,0 +1,27 @@
+Cuvinte cheie de tip:
+
+INT → „int”
+
+FLOAT → „float”
+
+STRING → „string”
+
+BOOL → „bool”
+
+Literali:
+
+INT_LITERAL – pentru numere întregi
+
+FLOAT_LITERAL – pentru numere reale
+
+STRING_LITERAL – pentru "text"
+
+BOOL_LITERAL – pentru true și false (sau poți să le faci direct token-uri TRUE / FALSE și apoi parserul le mapează la bool).
+
+Altele legate de tipuri:
+
+ID – numele variabilelor (și al funcțiilor, claselor)
+
+semnul = – pentru inițializare
+
+; – sfârșit de declarație
