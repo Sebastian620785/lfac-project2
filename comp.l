@@ -2,6 +2,8 @@
 %{
 #include "comp.tab.h"
 #include <string>
+#include <cstring>
+#include <cstdlib>
 using namespace std;
 %}
 %option noyywrap
@@ -12,6 +14,7 @@ using namespace std;
 "float"    { return FLOAT; }
 "string"   { return STRING; }
 "bool"     { return BOOL; }
+"void"     { return VOID; }
 
 "class"    { return CLASS; }
 "main"     { return MAIN; }
@@ -22,6 +25,9 @@ using namespace std;
 
 "true"     { return TRUE; }
 "false"    { return FALSE; }
+
+[0-9]+"."[0-9]+ { yylval.Float = atof(yytext); return FLOAT_LITERAL; }
+\"[^\n"]*\"     { yylval.String = new std::string(yytext + 1, strlen(yytext) - 2); return STRING_LITERAL; }
 
 [0-9]+ {
     yylval.Int = atoi(yytext);

@@ -1,0 +1,9 @@
+int x = 10;
+float pi = 3.14;
+string nume = "Bison";
+bool gata = true;
+
+main {
+    Print(pi);
+    Print(nume);
+}
