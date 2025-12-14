@@ -19,7 +19,7 @@ void yyerror(const char* s);
 }
 
 /* ====== TOKENURI FĂRĂ VALOARE ====== */
-%token INT FLOAT STRING BOOL
+%token INT FLOAT STRING BOOL VOID 
 %token CLASS MAIN IF WHILE RETURN PRINT
 %token TRUE FALSE
 %token AND OR NOT 
@@ -62,6 +62,8 @@ global_list
 /* deocamdată, doar variabile globale */
 global_decl
   : var_decl ';'
+  | func_def
+  | class_def
   ;
 
 /* blocul main */
@@ -107,12 +109,43 @@ var_decl
   | type ID '=' expr          /* ex: int x = 3; */
   ;
 
+class_member
+  : var_decl ';'
+  | func_def
+  ;
+
+class_member_list
+  : //epsilon
+  | class_member_list class_member
+  ;
+
+func_def
+  : type ID '(' param_list ')' '{' stmt_list '}'
+  ;
+
+param_list
+  : //epsilon
+  | param_decl
+  | param_list ',' param_decl
+  ;
+
+param_decl
+  : type ID
+  ;
+
+class_def
+  : CLASS ID '{' class_member_list '}' ';' /* Atentie la ; dupa clasa daca e stil C++ */
+  ;
+ 
+
 /* tipuri de bază */
 type
   : INT
   | FLOAT
   | STRING
   | BOOL
+  | VOID
+  | ID
   ;
 
 /* expresii – deocamdată literali simpli (integer, float, string, bool) */
@@ -157,6 +190,8 @@ void yyerror(const char* s) {
 }
 
 int main() {
-  yyparse();
+  if (yyparse() == 0) {
+      std::cout << "Program corect gramatical";
+  }
   return 0;
 }

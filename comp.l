@@ -2,9 +2,8 @@
 %{
 #include "comp.tab.h"
 #include <string>
-#include <cstdlib>
 #include <cstring>
-
+#include <cstdlib>
 using namespace std;
 %}
 %option noyywrap
@@ -15,6 +14,7 @@ using namespace std;
 "float"    { return FLOAT; }
 "string"   { return STRING; }
 "bool"     { return BOOL; }
+"void"     { return VOID; }
 
 "class"    { return CLASS; }
 "main"     { return MAIN; }
