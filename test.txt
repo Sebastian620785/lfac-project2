@@ -1,9 +1,22 @@
-int x = 10;
-float pi = 3.14;
-string nume = "Bison";
-bool gata = true;
+int x;
+float y;
 
-main {
-    Print(pi);
-    Print(nume);
+class MyClass {
+    int a;
+};
+
+void myFunc(int p) {
+    int localX;
+    localX = 10;
+    Print(localX);
+    return;
+}
+
+main() {
+    Print(100);
+    x = 50;
+    
+    if (true) {
+        Print(1);
+    }
 }

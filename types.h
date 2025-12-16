@@ -9,7 +9,7 @@ enum TipBaza {
     TYPE_STRING,
     TYPE_BOOL,
     TYPE_VOID,
-    TYPE_CLASS,   
+    TYPE_CLASS,    
     TYPE_UNKNOWN
 };
 
@@ -20,6 +20,7 @@ struct TypeInfo {
 
     TypeInfo(TipBaza t) : type(t), className("") {}
     TypeInfo(std::string name) : type(TYPE_CLASS), className(name) {}
+    TypeInfo() : type(TYPE_UNKNOWN), className("") {}
 };
 
 #endif
