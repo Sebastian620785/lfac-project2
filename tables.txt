@@ -1,0 +1,6 @@
+=== SCOPE: Global ===
+Name: f | Cat: variable | Size: 8 | Offset: 8
+Name: ok | Cat: variable | Size: 1 | Offset: 272
+Name: s | Cat: variable | Size: 256 | Offset: 16
+Name: x | Cat: variable | Size: 4 | Offset: 0
+Name: y | Cat: variable | Size: 4 | Offset: 4
