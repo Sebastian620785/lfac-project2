@@ -8,6 +8,8 @@
 #include <vector>
 #include "types.h"
 #include "ast.h"
+#include "SymTableStub.h"
+
 
 extern int yylex();
 extern int yylineno;
@@ -245,7 +247,11 @@ void yyerror(const char* s) {
 int main() {
   if (yyparse() == 0) {
       if (root) {
+        SymTableStub st;
+root->eval(&st);
+
           root->print();
+         
       }
   }
   return 0;

@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 #include "types.h"
+#include "value.h"
+#include "SymTableStub.h"
 
 using namespace std;
 
@@ -13,6 +15,9 @@ public:
     virtual ~ASTNode() {}
     virtual void print(int level = 0) {
         for(int i=0; i<level; i++) cout << "  ";
+    }///---------------------
+    virtual Value eval(void* scope){
+        return Value();
     }
 };
 
@@ -25,6 +30,12 @@ public:
         for (auto n : globals) n->print(level + 1);
         if (mainBlock) mainBlock->print(level + 1);
     }
+    Value eval(void* scope) override {
+        if (mainBlock) 
+        return mainBlock->eval(scope);
+        return Value();
+    }
+    
 };
 
 class BlockNode : public ASTNode {
@@ -36,6 +47,15 @@ public:
         for (auto s : statements) s->print(level + 1);
         ASTNode::print(level); cout << "}" << endl;
     }
+    Value eval(void* scope) override {
+        Value last;
+        for (auto s:statements) {
+            if(s) 
+            last=s->eval(scope);
+        }
+        return last;
+    }
+    
 };
 
 class VarDeclNode : public ASTNode {
@@ -86,6 +106,12 @@ public:
         ASTNode::print(level); cout << "MAIN BLOCK" << endl;
         if(body) body->print(level + 1);
     }
+    Value eval(void* scope) override {
+        if(body)
+         return body->eval(scope);
+        return Value();
+    }
+    
 };
 
 class StmtNode : public ASTNode {
@@ -125,6 +151,12 @@ class PrintNode : public ASTNode {
 public:
     ASTNode* expr;
     PrintNode(ASTNode* e) : expr(e) {}
+    Value eval(void* scope) override {
+        Value v = expr->eval(scope);
+        cout << v.toString() << endl;
+        return v;
+    }
+    
     void print(int level = 0) override {
         ASTNode::print(level); cout << "Print" << endl;
         expr->print(level+1);
@@ -140,6 +172,14 @@ public:
         ASTNode::print(level); cout << "Assign: " << name << endl;
         val->print(level+1);
     }
+    Value eval(void* scope) override {
+        SymTableStub* st = (SymTableStub*)scope;
+        Value rhs = val->eval(scope);
+        if(st) 
+        st->setValue(name, rhs);
+        return rhs;
+    }
+    
 };
 
 class ReturnNode : public ASTNode {
@@ -164,12 +204,156 @@ public:
         if (left) left->print(level+1);   
         if (right) right->print(level+1); 
     }
-};
+    Value eval(void* scope) override {
+        // evaluez subarbori
+        Value leftVal=left->eval(scope);
+    
+        // operator unar
+        if(right==nullptr) {
+            if (op=="!") {
+                if (leftVal.type==VAL_BOOL)
+                    return Value(!leftVal.b);
+            }
+            return Value();
+        }
+    
+        Value rightVal=right->eval(scope);
+    
+        // aritmetici
+        if(op=="+") {
+            if(leftVal.type==VAL_INT)
+                return Value(leftVal.i + rightVal.i);
+            if(leftVal.type==VAL_FLOAT)
+                return Value(leftVal.f + rightVal.f);
+            if(leftVal.type==VAL_STRING)
+                return Value(leftVal.s + rightVal.s);
+        }
+    
+        if (op=="-") {
+            if (leftVal.type==VAL_INT)
+                return Value(leftVal.i - rightVal.i);
+            if(leftVal.type==VAL_FLOAT)
+                return Value(leftVal.f - rightVal.f);
+        }
+    
+        if(op=="*") {
+            if(leftVal.type==VAL_INT)
+                return Value(leftVal.i*rightVal.i);
+            if(leftVal.type==VAL_FLOAT)
+                return Value(leftVal.f*rightVal.f);
+        }
+    
+        if(op=="/") {
+            if(leftVal.type==VAL_INT){
+                if(rightVal.i==0){
+                    cout<<" nu se poate impartii la 0"<<endl;
+                    return Value();
+                }
+                return Value(leftVal.i/rightVal.i);}
 
+            if(leftVal.type==VAL_FLOAT){
+                if(rightVal.f==0.0f){
+                    cout<<" nu se poate impartii la 0"<<endl;
+                    return Value();
+                }
+                return Value(leftVal.f/rightVal.f);
+        }}
+        // comparatii
+if(op=="<") {
+    if(leftVal.type==VAL_INT)
+        return Value(leftVal.i<rightVal.i);
+    if(leftVal.type==VAL_FLOAT)
+        return Value(leftVal.f<rightVal.f);
+}
+
+if(op==">") {
+    if(leftVal.type==VAL_INT)
+        return Value(leftVal.i>rightVal.i);
+    if(leftVal.type==VAL_FLOAT)
+        return Value(leftVal.f>rightVal.f);
+}
+
+if(op=="<=") {
+    if(leftVal.type==VAL_INT)
+        return Value(leftVal.i<=rightVal.i);
+    if(leftVal.type==VAL_FLOAT)
+        return Value(leftVal.f<=rightVal.f);
+}
+
+if(op==">=") {
+    if(leftVal.type==VAL_INT)
+        return Value(leftVal.i>=rightVal.i);
+    if(leftVal.type==VAL_FLOAT)
+        return Value(leftVal.f>=rightVal.f);
+}
+
+if(op=="==") {
+    if(leftVal.type==VAL_INT)
+        return Value(leftVal.i==rightVal.i);
+    if(leftVal.type == VAL_FLOAT)
+        return Value(leftVal.f== rightVal.f);
+    if(leftVal.type== VAL_BOOL)
+        return Value(leftVal.b== rightVal.b);
+    if(leftVal.type==VAL_STRING)
+        return Value(leftVal.s==rightVal.s);
+}
+
+if(op=="!=") {
+    if(leftVal.type==VAL_INT)
+        return Value(leftVal.i!=rightVal.i);
+    if(leftVal.type==VAL_FLOAT)
+        return Value(leftVal.f!=rightVal.f);
+    if(leftVal.type==VAL_BOOL)
+        return Value(leftVal.b!=rightVal.b);
+    if(leftVal.type==VAL_STRING)
+        return Value(leftVal.s!=rightVal.s);
+}
+
+// logici
+if(op=="&&") {
+    if(leftVal.type==VAL_BOOL)
+        return Value(leftVal.b && rightVal.b);
+}
+
+if(op=="||") {
+    if(leftVal.type==VAL_BOOL)
+        return Value(leftVal.b||rightVal.b);
+}
+
+    
+        return Value();
+    }
+    
+};
+//verificnc tipurile si fac operatiile
 class LiteralNode : public ASTNode {
 public:
     string val;
     LiteralNode(string v) : val(v) {}
+    Value eval(void* scope) override{
+        if(val=="true")
+            return Value(true);
+        if(val=="false")
+            return Value(false);
+        bool isInt=true;
+        bool isFloat=false;
+        for (char c : val) {
+            if(c=='.') 
+            { isFloat = true;
+                 isInt = false;
+                  break; }
+            if(c<'0' || c>'9')
+             { isInt = false; 
+                break; }
+        }
+
+        if (isInt)
+         return Value(std::stoi(val));
+        if(isFloat) 
+        return Value(std::stof(val));
+        return Value(val);
+    
+    }
     void print(int level = 0) override {
         ASTNode::print(level); cout << "Literal: " << val << endl;
     }
@@ -182,6 +366,12 @@ public:
     void print(int level = 0) override {
         ASTNode::print(level); cout << "ID: " << name << endl;
     }
+    Value eval(void* scope) override {
+        SymTableStub* st = (SymTableStub*)scope;
+        if (!st) return Value();
+        return st->getValue(name);
+    }
+    
 };
 
 class CallNode : public ASTNode {
