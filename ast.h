@@ -6,7 +6,7 @@
 #include <string>
 #include "types.h"
 #include "value.h"
-#include "SymTableStub.h"
+#include "symbol_table.h"
 
 using namespace std;
 
