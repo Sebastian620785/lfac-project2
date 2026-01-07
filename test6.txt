@@ -1,0 +1,8 @@
+int i = 0;
+
+main() {
+  while (i < 3) {
+    Print(i);
+    i = i + 1;
+  }
+}

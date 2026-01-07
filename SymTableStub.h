@@ -6,10 +6,11 @@
 #include <iostream>
 #include "value.h"
 
+class FuncDefNode;
+
 class SymTableStub {
 public:
     std::map<std::string, Value> vals;
-
     bool hasValue(const std::string& name) const {
         return vals.find(name) != vals.end();
     }

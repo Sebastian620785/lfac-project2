@@ -1,5 +1,5 @@
 #include "value.h"
-#include <sstream>//convertesc float in string
+#include <sstream>
 
 Value::Value() {
     type = VAL_VOID;
@@ -7,6 +7,7 @@ Value::Value() {
     f = 0.0f;
     b = false;
     s = "";
+    hasReturn = false;
 }
 
 Value::Value(int v) {
@@ -15,6 +16,7 @@ Value::Value(int v) {
     f = 0.0f;
     b = false;
     s = "";
+    hasReturn = false;
 }
 
 Value::Value(float v) {
@@ -23,6 +25,7 @@ Value::Value(float v) {
     i = 0;
     b = false;
     s = "";
+    hasReturn = false;
 }
 
 Value::Value(bool v) {
@@ -31,6 +34,7 @@ Value::Value(bool v) {
     i = 0;
     f = 0.0f;
     s = "";
+    hasReturn = false;
 }
 
 Value::Value(const std::string& v) {
@@ -39,31 +43,23 @@ Value::Value(const std::string& v) {
     i = 0;
     f = 0.0f;
     b = false;
+    hasReturn = false;
 }
 
+std::string Value::toString() const {
+    if (type == VAL_INT) return std::to_string(i);
 
-
-std::string Value::toString() const{
-    if(type==VAL_INT)
-     return std::to_string(i);
-    else 
-    if(type==VAL_FLOAT) {
-        std::ostringstream oss;//ca un cout dar in loc sa scrie pe ecran scrie intr un string intern
-        oss << f;//ia float si l scrie in string(oss)
+    if (type == VAL_FLOAT) {
+        std::ostringstream oss;
+        oss << f;
         return oss.str();
     }
-    else 
-    if(type==VAL_BOOL) {
-    if(b) 
-    return "true";
-    else 
-    return "false";
-    }
-    else 
-    if(type==VAL_STRING) 
-    return s;
-    else
-     if(type==VAL_VOID) 
-     return "void";
-     return "";//pt a evita situatiua in care e de oricea lt tip
+
+    if (type == VAL_BOOL) return b ? "true" : "false";
+
+    if (type == VAL_STRING) return s;
+
+    if (type == VAL_VOID) return "void";
+
+    return "";
 }

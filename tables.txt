@@ -1,6 +1,5 @@
+=== SCOPE: func_sum ===
+Name: a | Cat: parameter | Size: 4 | Offset: 0
+Name: b | Cat: parameter | Size: 4 | Offset: 4
 === SCOPE: Global ===
-Name: f | Cat: variable | Size: 8 | Offset: 8
-Name: ok | Cat: variable | Size: 1 | Offset: 272
-Name: s | Cat: variable | Size: 256 | Offset: 16
-Name: x | Cat: variable | Size: 4 | Offset: 0
-Name: y | Cat: variable | Size: 4 | Offset: 4
+Name: sum | Cat: function | Size: 1 | Offset: 0

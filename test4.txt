@@ -1,0 +1,8 @@
+bool x = true;
+bool y = false;
+
+main() {
+  Print(x && y);
+  Print(x || y);
+  Print(!x);
+}

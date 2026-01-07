@@ -1,0 +1,9 @@
+class C {
+  int x;
+};
+
+C c;
+
+main() {
+  Print(c.x);
+}
