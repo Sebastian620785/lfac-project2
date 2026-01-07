@@ -10,7 +10,6 @@ Symbols:
   f : int (function) [Params: 1]
   fx : float (variable)
   ix : int (variable)
-  iy : int (variable)
   main : int (function) [Params: 0]
   oba : class A (variable)
   obb : class B (variable)

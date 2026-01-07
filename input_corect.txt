@@ -1,7 +1,6 @@
 float fx;
 string s;
 int ix;
-int iy;
 bool b1;
 bool b2;
 
@@ -80,7 +79,6 @@ main() {
     obb.init();
     
     ix = 10;
-    iy = 0;
     
     ix = ix + (ix + f(ix*4))*2 + oba.x * oba.y + oba.f(10) + obb.b * obb.bb ;  
     Print(ix);
@@ -96,7 +94,7 @@ main() {
     Print(b1 == false); 
     Print(oba.x == oba.y);
 
-    Print(ix+5 > iy+6 || (b1 == false && f(ix) + 5 > 5 + obb.b) || oba.x == oba.y);
+    Print(ix+5 > ix+6 || (b1 == false && f(ix) + 5 > 5 + obb.b) || oba.x == oba.y);
 
     if(ix+2 > ix + 5 && ix + 3 > f(45*3) - 10) {
         ix = 100;
