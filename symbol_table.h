@@ -39,7 +39,8 @@ public:
     string name;
     TypeInfo type; 
     string category; 
-    string className; 
+    string className;
+    string value; 
     int size; int offset;
     vector<SymbolType> paramTypes; 
 
@@ -50,6 +51,7 @@ public:
         else if(t.type == TYPE_FLOAT) st = SYM_FLOAT;
         else if(t.type == TYPE_BOOL) st = SYM_BOOL;
         else if(t.type == TYPE_STRING) st = SYM_STRING;
+        else if(t.type == TYPE_CLASS) st = SYM_CLASS;
         size = getTypeSize(st);
         offset = 0;
     }
@@ -61,7 +63,9 @@ class SymbolTable {
     string scopeName;
     int currentMemoryOffset; 
 public:
+
     SymbolTable(SymbolTable* p, string name) : parent(p), scopeName(name), currentMemoryOffset(0) {}
+
     bool addSymbol(SymbolInfo sym) {
         if (symbols.count(sym.name)) return false;
         sym.offset = currentMemoryOffset;
@@ -69,6 +73,7 @@ public:
         symbols[sym.name] = sym;
         return true;
     }
+
     bool updateFunctionParams(string name, vector<TypeInfo> params) {
         if (symbols.count(name)) {
             for(auto p : params) {
@@ -81,18 +86,41 @@ public:
         }
         return false;
     }
+
+    string getScopeName() { return scopeName; }
+    
     SymbolInfo* lookup(string name) {
         if (symbols.count(name)) return &symbols[name];
         return parent ? parent->lookup(name) : NULL;
     }
+
     SymbolInfo* lookupCurrent(string name) {
         return symbols.count(name) ? &symbols[name] : NULL;
     }
+
     SymbolTable* getParent() { return parent; }
-    void printTable(ofstream& out) {
-        out << "=== SCOPE: " << scopeName << " ===" << endl;
+    
+    void dump(ofstream& out) {
+        if (!out.is_open()) return;
+
+        out << endl << "===== SCOPE: " << scopeName << " =====" << endl;
+        if (parent) out << "Parent: " << parent->getScopeName() << endl;
+        else out << "Parent: none" << endl;
+        
+        out << "Symbols:" << endl;
+        if (symbols.empty()) out << "  (none)" << endl;
+
         for (auto const& [key, val] : symbols) {
-            out << "Name: " << val.name << " | Cat: " << val.category << " | Size: " << val.size << " | Offset: " << val.offset << endl;
+            out << "  " << val.name << " : " << val.type.typeToString();
+            out << " (" << val.category << ")";
+            
+            if (val.category == "variable" && !val.value.empty() && val.value != "?") {
+                out << " [Val: " << val.value << "]";
+            }
+            if (val.category == "function") {
+                out << " [Params: " << val.paramTypes.size() << "]";
+            }
+            out << endl;
         }
     }
 };
@@ -100,13 +128,45 @@ public:
 class ScopeManager {
 public:
     SymbolTable *currentScope, *globalScope;
+
     map<string, SymbolTable*> classScopes;
-    ofstream debugFile;
-    ScopeManager() { globalScope = currentScope = new SymbolTable(NULL, "Global"); debugFile.open("tables.txt"); }
-    ~ScopeManager() { globalScope->printTable(debugFile); debugFile.close(); }
-    void enterScope(string name) { currentScope = new SymbolTable(currentScope, name); }
-    void exitScope() { currentScope->printTable(debugFile); if(currentScope->getParent()) currentScope = currentScope->getParent(); }
-    void saveClassScope(string className) { classScopes[className] = currentScope; }
-    SymbolInfo* lookupInClass(string className, string memberName) { return classScopes.count(className) ? classScopes[className]->lookupCurrent(memberName) : NULL; }
+
+    vector<SymbolTable*> allScopes;
+    
+
+    ScopeManager() { 
+        globalScope = new SymbolTable(NULL, "Global"); 
+        currentScope = globalScope;
+        allScopes.push_back(globalScope);
+    }
+
+    ~ScopeManager() { 
+        for(auto s : allScopes) delete s;
+    }
+    
+    void enterScope(string name) { 
+        currentScope = new SymbolTable(currentScope, name); 
+        allScopes.push_back(currentScope);
+    }
+
+    void exitScope() { 
+        if(currentScope->getParent()) currentScope = currentScope->getParent(); 
+    }
+
+    void saveClassScope(string className) { 
+        classScopes[className] = currentScope; 
+    }
+
+    SymbolInfo* lookupInClass(string className, string memberName) { 
+        return classScopes.count(className) ? classScopes[className]->lookupCurrent(memberName) : NULL; 
+    }
+
+    void dumpAllScopes(const string& filename) {
+        ofstream out(filename);
+        if(!out.is_open()) return;
+        for(auto s : allScopes) s->dump(out);
+        out.close();
+        cout << "[Info] Symbol tables dumped to " << filename << endl;
+    }
 };
 #endif

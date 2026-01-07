@@ -1,5 +1,86 @@
-=== SCOPE: func_sum ===
-Name: a | Cat: parameter | Size: 4 | Offset: 0
-Name: b | Cat: parameter | Size: 4 | Offset: 4
-=== SCOPE: Global ===
-Name: sum | Cat: function | Size: 1 | Offset: 0
+
+===== SCOPE: Global =====
+Parent: none
+Symbols:
+  A : class A (class)
+  B : class B (class)
+  b1 : bool (variable)
+  b2 : bool (variable)
+  bfunc : string (function) [Params: 2]
+  f : int (function) [Params: 1]
+  fx : float (variable)
+  ix : int (variable)
+  iy : int (variable)
+  main : int (function) [Params: 0]
+  oba : class A (variable)
+  obb : class B (variable)
+  s : string (variable)
+
+===== SCOPE: class_A =====
+Parent: Global
+Symbols:
+  f : int (function) [Params: 1]
+  g : int (function) [Params: 1]
+  init : void (function) [Params: 0]
+  x : int (variable)
+  y : int (variable)
+
+===== SCOPE: func_init =====
+Parent: class_A
+Symbols:
+  (none)
+
+===== SCOPE: func_g =====
+Parent: class_A
+Symbols:
+  z : int (parameter)
+
+===== SCOPE: func_f =====
+Parent: class_A
+Symbols:
+  val : int (parameter)
+
+===== SCOPE: func_f =====
+Parent: Global
+Symbols:
+  b : int (variable) [Val: 10]
+  flag : bool (variable)
+  x : int (variable) [Val: 5]
+  z : int (parameter)
+
+===== SCOPE: class_B =====
+Parent: Global
+Symbols:
+  b : int (variable)
+  bb : int (variable)
+  f : int (function) [Params: 1]
+  g : int (function) [Params: 1]
+  init : void (function) [Params: 0]
+
+===== SCOPE: func_init =====
+Parent: class_B
+Symbols:
+  (none)
+
+===== SCOPE: func_g =====
+Parent: class_B
+Symbols:
+  a : class A (variable)
+  x : int (variable)
+  z : int (parameter)
+
+===== SCOPE: func_f =====
+Parent: class_B
+Symbols:
+  z : int (parameter)
+
+===== SCOPE: func_bfunc =====
+Parent: Global
+Symbols:
+  b : bool (parameter)
+  s : string (parameter)
+
+===== SCOPE: func_main =====
+Parent: Global
+Symbols:
+  (none)

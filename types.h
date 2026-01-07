@@ -30,6 +30,17 @@ struct TypeInfo {
     bool operator!=(const TypeInfo& other) const {
         return !(*this == other);
     }
+    std::string typeToString() const {
+        switch(type) {
+            case TYPE_INT: return "int";
+            case TYPE_FLOAT: return "float";
+            case TYPE_STRING: return "string";
+            case TYPE_BOOL: return "bool";
+            case TYPE_VOID: return "void";
+            case TYPE_CLASS: return "class " + className;
+            default: return "unknown";
+        }
+    }
 };
 
 #endif

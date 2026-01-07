@@ -1,0 +1,104 @@
+float fx;
+string s;
+int ix;
+int iy;
+bool b1;
+bool b2;
+
+class A {
+    int x;
+    int y;
+    
+    void init() {
+       x = 19;
+       y = 90;
+    }
+
+    int g(int z) {
+       return z + 100;
+    }
+    
+    int f(int val) {
+        return val * 2;
+    }
+};
+
+int f(int z) {
+ int x = 5; 
+ int b = 10;
+ bool flag;
+
+ if(flag == true) {    
+    return x + b;                      
+ }  
+ return z * 10;
+}
+
+class B {
+    int b;
+    int bb;
+    
+    void init() {
+       b = 5;
+       bb = 10; 
+    }
+
+    int g(int z) {
+       A a; 
+       int x;
+       a.init(); 
+       x = 100; 
+       return x  + a.x + z;
+    }
+
+    int f(int z) {
+          return 200 * z;
+    }
+};
+
+string bfunc(bool b, string s) {
+    if( b == true ) {
+       return s; 
+    }
+    return "bau";
+}
+
+B obb; 
+A oba; 
+
+main() {       
+    fx = 65.0;
+    fx = fx + 10.0 * fx - 65.0;
+    Print(fx);
+
+    s = "test";
+    Print(s);
+    s = "otherstr";
+    Print(s);
+
+    oba.init();
+    obb.init();
+    
+    ix = 10;
+    iy = 0;
+    
+    ix = ix + (ix + f(ix*4))*2 + oba.x * oba.y + oba.f(10) + obb.b * obb.bb ;  
+    Print(ix);
+
+    oba.x = f(1000);
+    oba.y = f(100);
+    b2 = true;
+    b1 = b2 || !b2;
+    Print(bfunc(b1, "s"));
+
+    Print(f(ix) + 5 > 5 + obb.b);
+    Print(ix+5 > ix+6);
+    Print(b1 == false); 
+    Print(oba.x == oba.y);
+
+    Print(ix+5 > iy+6 || (b1 == false && f(ix) + 5 > 5 + obb.b) || oba.x == oba.y);
+
+    if(ix+2 > ix + 5 && ix + 3 > f(45*3) - 10) {
+        ix = 100;
+    }
+}
