@@ -11,66 +11,46 @@
 
 using namespace std;
 
-class ASTNode {
+class ast_node {
 public:
-    virtual ~ASTNode() {}
-    virtual void print(int level = 0) {
-        for (int i = 0; i < level; i++) cout << "  ";
-    }
+    virtual ~ast_node() {}
+    
     virtual Value eval(void* scope) {
         return Value();
     }
 };
 
-class ProgramNode : public ASTNode {
+class program_node : public ast_node {
 public:
-    vector<ASTNode*> globals;
-    ASTNode* mainBlock;
+    vector<ast_node*> globals;
+    ast_node* main_block;
 
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "PROGRAM ROOT" << endl;
-        for (auto n : globals) {
-            if (n) n->print(level + 1);
-        }
-        if (mainBlock) mainBlock->print(level + 1);
-    }
+    program_node() : main_block(nullptr) {}
 
     Value eval(void* scope) override {
         for (auto g : globals) {
             if (g) g->eval(scope);
         }
-        if (mainBlock) return mainBlock->eval(scope);
+        if (main_block) return main_block->eval(scope);
         return Value();
     }
 };
 
-class BlockNode : public ASTNode {
+class block_node : public ast_node {
 public:
-    vector<ASTNode*> statements;
+    vector<ast_node*> statements;
 
-    void addStatement(ASTNode* stmt) {
+    void addStatement(ast_node* stmt) {
         if (stmt) {
             statements.push_back(stmt);
         }
     }
 
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Block {" << endl;
-        for (auto s : statements) {
-            if (s) s->print(level + 1);
-        }
-        ASTNode::print(level);
-        cout << "}" << endl;
-    }
-
     Value eval(void* scope) override {
         Value last;
         for (auto s : statements) {
-            if (!s) {
-                continue;
-            }
+            if (!s) continue;
+            
             last = s->eval(scope);
             if (last.hasReturn) {
                 return last;
@@ -79,117 +59,12 @@ public:
         return last;
     }
 };
-class MemberAssignNode : public ASTNode {
+
+class main_node : public ast_node {
 public:
-    ASTNode* obj;
-    string member;
-    ASTNode* val;
+    block_node* body;
 
-    MemberAssignNode(ASTNode* o, string m, ASTNode* v) : obj(o), member(m), val(v) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "MemberAssign: ." << member << endl;
-        if (obj) obj->print(level + 1);
-        if (val) val->print(level + 1);
-    }
-
-    Value eval(void* scope) override {
-        if (val) return val->eval(scope);
-        return Value();
-    }
-};
-
-class VarDeclNode : public ASTNode {
-public:
-    TypeInfo* type;
-    string name;
-    ASTNode* initVal;
-
-    VarDeclNode(TypeInfo* t, string n, ASTNode* init = nullptr) 
-        : type(t), name(n), initVal(init) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "VarDecl: " << name << endl;
-    }
-
-    Value eval(void* scope) override {
-        SymTableStub* st = (SymTableStub*)scope;
-        if (!st) {
-            return Value();
-        }
-
-        Value v;
-        if (initVal) {
-            v = initVal->eval(scope);
-        } else {
-            // Valori default
-            if (type && type->type == TYPE_INT)
-                v = Value(0);
-            else if (type && type->type == TYPE_FLOAT)
-                v = Value(0.0f);
-            else if (type && type->type == TYPE_BOOL)
-                v = Value(false);
-            else if (type && type->type == TYPE_STRING)
-                v = Value(std::string(""));
-            else
-                v = Value();
-        }
-        st->setValue(name, v);
-        return v;
-    }
-};
-
-class FuncDefNode : public ASTNode {
-public:
-    TypeInfo* returnType;
-    string name;
-    vector<VarDeclNode*> params;
-    std::vector<std::string> paramNames;
-    BlockNode* body;
-
-    FuncDefNode(TypeInfo* type, std::string n, std::vector<std::string> params, BlockNode* b)
-        : returnType(type), name(n), paramNames(params), body(b) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Function: " << name << endl;
-        cout << string(level + 2, ' ') << "Params: " << params.size() << endl;
-        for (auto p : params) {
-            if (p) p->print(level + 2);
-        }
-        if (body) body->print(level + 1);
-    }
-};
-
-class ClassDefNode : public ASTNode {
-public:
-    string name;
-    vector<ASTNode*> members;
-
-    ClassDefNode(string n) : name(n) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Class: " << name << endl;
-        for (auto m : members) {
-            if (m) m->print(level + 1);
-        }
-    }
-};
-
-class MainNode : public ASTNode {
-public:
-    BlockNode* body;
-
-    MainNode(BlockNode* b) : body(b) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "MAIN BLOCK" << endl;
-        if (body) body->print(level + 1);
-    }
+    main_node(block_node* b) : body(b) {}
 
     Value eval(void* scope) override {
         if (body) {
@@ -199,54 +74,79 @@ public:
     }
 };
 
-class StmtNode : public ASTNode {
+class var_decl_node : public ast_node {
 public:
-    string info;
+    TypeInfo* type;
+    string name;
+    ast_node* init_val;
 
-    StmtNode(string s) : info(s) {}
+    var_decl_node(TypeInfo* t, string n, ast_node* init = nullptr) 
+        : type(t), name(n), init_val(init) {}
 
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Statement: " << info << endl;
+    Value eval(void* scope) override {
+        SymTableStub* st = (SymTableStub*)scope;
+        if (!st) return Value();
+
+        Value v;
+        if (init_val) {
+            v = init_val->eval(scope);
+        } else {
+            if (type && type->type == TYPE_INT) v = Value(0);
+            else if (type && type->type == TYPE_FLOAT) v = Value(0.0f);
+            else if (type && type->type == TYPE_BOOL) v = Value(false);
+            else if (type && type->type == TYPE_STRING) v = Value(std::string(""));
+            else v = Value();
+        }
+        st->setValue(name, v);
+        return v;
     }
 };
 
-class IfNode : public ASTNode {
+class func_def_node : public ast_node {
 public:
-    ASTNode* condition;
-    ASTNode* thenBlock;
+    TypeInfo* return_type;
+    string name;
+    std::vector<std::string> param_names; 
+    block_node* body;
 
-    IfNode(ASTNode* c, ASTNode* t) : condition(c), thenBlock(t) {}
+    func_def_node(TypeInfo* type, std::string n, std::vector<std::string> params, block_node* b)
+        : return_type(type), name(n), param_names(params), body(b) {}
 
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "If" << endl;
-        if (condition) condition->print(level + 1);
-        if (thenBlock) thenBlock->print(level + 1);
-    }
+    Value eval(void* scope) override { return Value(); }
+};
+
+class class_def_node : public ast_node {
+public:
+    string name;
+    vector<ast_node*> members;
+
+    class_def_node(string n) : name(n) {}
+    
+    Value eval(void* scope) override { return Value(); }
+};
+
+class if_node : public ast_node {
+public:
+    ast_node* condition;
+    ast_node* then_block;
+
+    if_node(ast_node* c, ast_node* t) : condition(c), then_block(t) {}
 
     Value eval(void* scope) override {
         Value c = condition->eval(scope);
         if (c.type == VAL_BOOL && c.b) {
-            return thenBlock ? thenBlock->eval(scope) : Value();
+            return then_block ? then_block->eval(scope) : Value();
         }
         return Value();
     }
 };
 
-class WhileNode : public ASTNode {
+class while_node : public ast_node {
 public:
-    ASTNode* condition;
-    ASTNode* body;
+    ast_node* condition;
+    ast_node* body;
 
-    WhileNode(ASTNode* c, ASTNode* b) : condition(c), body(b) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "While" << endl;
-        if (condition) condition->print(level + 1);
-        if (body) body->print(level + 1);
-    }
+    while_node(ast_node* c, ast_node* b) : condition(c), body(b) {}
 
     Value eval(void* scope) override {
         Value last;
@@ -256,45 +156,35 @@ public:
 
             if (body) {
                 last = body->eval(scope);
-                if (last.hasReturn)
-                    return last;
+                if (last.hasReturn) return last;
             }
         }
         return last;
     }
 };
 
-class PrintNode : public ASTNode {
+class return_node : public ast_node {
 public:
-    ASTNode* expr;
+    ast_node* expr;
 
-    PrintNode(ASTNode* e) : expr(e) {}
+    return_node(ast_node* e = nullptr) : expr(e) {}
 
     Value eval(void* scope) override {
-        Value v = expr->eval(scope);
-        cout << v.toString() << endl;
+        Value v;
+        if (expr) {
+            v = expr->eval(scope);
+        }
+        v.hasReturn = true;
         return v;
-    }
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Print" << endl;
-        if (expr) expr->print(level + 1);
     }
 };
 
-class AssignNode : public ASTNode {
+class assign_node : public ast_node {
 public:
     string name;
-    ASTNode* val;
+    ast_node* val;
 
-    AssignNode(string n, ASTNode* v) : name(n), val(v) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Assign: " << name << endl;
-        if (val) val->print(level + 1);
-    }
+    assign_node(string n, ast_node* v) : name(n), val(v) {}
 
     Value eval(void* scope) override {
         SymTableStub* st = (SymTableStub*)scope;
@@ -306,197 +196,123 @@ public:
     }
 };
 
-class ReturnNode : public ASTNode {
+class member_assign_node : public ast_node {
 public:
-    ASTNode* expr;
+    ast_node* obj;
+    string member;
+    ast_node* val;
 
-    ReturnNode(ASTNode* e = nullptr) : expr(e) {}
+    member_assign_node(ast_node* o, string m, ast_node* v) : obj(o), member(m), val(v) {}
 
     Value eval(void* scope) override {
-        Value v;
-        if (expr) {
-            v = expr->eval(scope);
-        }
-        v.hasReturn = true;
-        return v;
-    }
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Return" << endl;
-        if (expr) expr->print(level + 1);
+        if (val) return val->eval(scope);
+        return Value();
     }
 };
 
-class BinaryExprNode : public ASTNode {
+class binary_expr_node : public ast_node {
 public:
     string op;
-    ASTNode* left;
-    ASTNode* right;
+    ast_node* left;
+    ast_node* right;
 
-    BinaryExprNode(string o, ASTNode* l, ASTNode* r) : op(o), left(l), right(r) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Op: " << op << endl;
-        if (left) left->print(level + 1);
-        if (right) right->print(level + 1);
-    }
+    binary_expr_node(string o, ast_node* l, ast_node* r) : op(o), left(l), right(r) {}
 
     Value eval(void* scope) override {
         Value leftVal = left->eval(scope);
 
-        // operator unar
         if (right == nullptr) {
             if (op == "!") {
-                if (leftVal.type == VAL_BOOL)
-                    return Value(!leftVal.b);
+                if (leftVal.type == VAL_BOOL) return Value(!leftVal.b);
             }
             return Value();
         }
 
         Value rightVal = right->eval(scope);
 
-        // aritmetici
         if (op == "+") {
-            if (leftVal.type == VAL_INT)
-                return Value(leftVal.i + rightVal.i);
-            if (leftVal.type == VAL_FLOAT)
-                return Value(leftVal.f + rightVal.f);
-            if (leftVal.type == VAL_STRING)
-                return Value(leftVal.s + rightVal.s);
+            if (leftVal.type == VAL_INT) return Value(leftVal.i + rightVal.i);
+            if (leftVal.type == VAL_FLOAT) return Value(leftVal.f + rightVal.f);
+            if (leftVal.type == VAL_STRING) return Value(leftVal.s + rightVal.s);
         }
-
         if (op == "-") {
-            if (leftVal.type == VAL_INT)
-                return Value(leftVal.i - rightVal.i);
-            if (leftVal.type == VAL_FLOAT)
-                return Value(leftVal.f - rightVal.f);
+            if (leftVal.type == VAL_INT) return Value(leftVal.i - rightVal.i);
+            if (leftVal.type == VAL_FLOAT) return Value(leftVal.f - rightVal.f);
         }
-
         if (op == "*") {
-            if (leftVal.type == VAL_INT)
-                return Value(leftVal.i * rightVal.i);
-            if (leftVal.type == VAL_FLOAT)
-                return Value(leftVal.f * rightVal.f);
+            if (leftVal.type == VAL_INT) return Value(leftVal.i * rightVal.i);
+            if (leftVal.type == VAL_FLOAT) return Value(leftVal.f * rightVal.f);
         }
-
         if (op == "/") {
             if (leftVal.type == VAL_INT) {
-                if (rightVal.i == 0) {
-                    cout << " nu se poate impartii la 0" << endl;
-                    return Value();
-                }
+                if (rightVal.i == 0) return Value();
                 return Value(leftVal.i / rightVal.i);
             }
-
             if (leftVal.type == VAL_FLOAT) {
-                if (rightVal.f == 0.0f) {
-                    cout << " nu se poate impartii la 0" << endl;
-                    return Value();
-                }
+                if (rightVal.f == 0.0f) return Value();
                 return Value(leftVal.f / rightVal.f);
             }
         }
-
-        // comparatii
         if (op == "<") {
             if (leftVal.type == VAL_INT) return Value(leftVal.i < rightVal.i);
             if (leftVal.type == VAL_FLOAT) return Value(leftVal.f < rightVal.f);
         }
-
         if (op == ">") {
             if (leftVal.type == VAL_INT) return Value(leftVal.i > rightVal.i);
             if (leftVal.type == VAL_FLOAT) return Value(leftVal.f > rightVal.f);
         }
-
         if (op == "<=") {
             if (leftVal.type == VAL_INT) return Value(leftVal.i <= rightVal.i);
             if (leftVal.type == VAL_FLOAT) return Value(leftVal.f <= rightVal.f);
         }
-
         if (op == ">=") {
             if (leftVal.type == VAL_INT) return Value(leftVal.i >= rightVal.i);
             if (leftVal.type == VAL_FLOAT) return Value(leftVal.f >= rightVal.f);
         }
-
         if (op == "==") {
             if (leftVal.type == VAL_INT) return Value(leftVal.i == rightVal.i);
             if (leftVal.type == VAL_FLOAT) return Value(leftVal.f == rightVal.f);
             if (leftVal.type == VAL_BOOL) return Value(leftVal.b == rightVal.b);
             if (leftVal.type == VAL_STRING) return Value(leftVal.s == rightVal.s);
         }
-
         if (op == "!=") {
             if (leftVal.type == VAL_INT) return Value(leftVal.i != rightVal.i);
             if (leftVal.type == VAL_FLOAT) return Value(leftVal.f != rightVal.f);
             if (leftVal.type == VAL_BOOL) return Value(leftVal.b != rightVal.b);
             if (leftVal.type == VAL_STRING) return Value(leftVal.s != rightVal.s);
         }
-
-        // logici
-        if (op == "&&") {
-            if (leftVal.type == VAL_BOOL) return Value(leftVal.b && rightVal.b);
-        }
-
-        if (op == "||") {
-            if (leftVal.type == VAL_BOOL) return Value(leftVal.b || rightVal.b);
-        }
+        if (op == "&&" && leftVal.type == VAL_BOOL) return Value(leftVal.b && rightVal.b);
+        if (op == "||" && leftVal.type == VAL_BOOL) return Value(leftVal.b || rightVal.b);
 
         return Value();
     }
 };
 
-class LiteralNode : public ASTNode {
+class literal_node : public ast_node {
 public:
     string val;
 
-    LiteralNode(string v) : val(v) {}
+    literal_node(string v) : val(v) {}
 
     Value eval(void* scope) override {
         if (val == "true") return Value(true);
         if (val == "false") return Value(false);
-        
-        bool isInt = true;
-        bool isFloat = false;
-        
-        for (char c : val) {
-            if (c == '.') {
-                isFloat = true;
-                isInt = false;
-                break;
-            }
-            if (c < '0' || c > '9') {
-                isInt = false;
-                break;
-            }
+        if (val.find("\"") != string::npos) {
+            string s = val;
+            if(s.size() >= 2) s = s.substr(1, s.size()-2);
+            return Value(s);
         }
-
-        if (isInt) {
-            return Value(std::stoi(val));
-        }
-        if (isFloat) {
-            return Value(std::stof(val));
-        }
-        return Value(val);
-    }
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Literal: " << val << endl;
+        bool isFloat = (val.find('.') != string::npos);
+        if (isFloat) return Value(std::stof(val));
+        return Value(std::stoi(val));
     }
 };
 
-class IdNode : public ASTNode {
+class id_node : public ast_node {
 public:
     string name;
 
-    IdNode(string n) : name(n) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "ID: " << name << endl;
-    }
+    id_node(string n) : name(n) {}
 
     Value eval(void* scope) override {
         SymTableStub* st = (SymTableStub*)scope;
@@ -505,81 +321,61 @@ public:
     }
 };
 
-class CallNode : public ASTNode {
+class call_node : public ast_node {
 public:
-    string funcName;
-    vector<ASTNode*> args;
-    TypeInfo retType;
+    string func_name;
+    vector<ast_node*> args;
+    TypeInfo ret_type;
 
-    CallNode(string n, vector<ASTNode*> a, TypeInfo rt)
-        : funcName(n), args(a), retType(rt) {}
-
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Call: " << funcName << endl;
-        for (auto a : args) {
-            if (a) a->print(level + 1);
-        }
-    }
+    call_node(string n, vector<ast_node*> a, TypeInfo rt)
+        : func_name(n), args(a), ret_type(rt) {}
 
     Value eval(void* scope) override {
-        if (retType.type == TYPE_INT) return Value(0);
-        if (retType.type == TYPE_FLOAT) return Value(0.0f);
-        if (retType.type == TYPE_BOOL) return Value(false);
-        if (retType.type == TYPE_STRING) return Value(std::string(""));
+        if (ret_type.type == TYPE_INT) return Value(0);
+        if (ret_type.type == TYPE_FLOAT) return Value(0.0f);
+        if (ret_type.type == TYPE_BOOL) return Value(false);
+        if (ret_type.type == TYPE_STRING) return Value(std::string(""));
         return Value();
     }
 };
 
-class DotNode : public ASTNode {
+class dot_node : public ast_node {
 public:
-    ASTNode* obj;
+    ast_node* obj;
     string member;
-    //obj1.obj2. ... .objn.member
-    DotNode(ASTNode* o, string m) : obj(o), member(m) {}
 
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "Access ." << member << endl;
-        if (obj) obj->print(level + 1);
-    }
+    dot_node(ast_node* o, string m) : obj(o), member(m) {}
 
     Value eval(void* scope) override {
         return Value();
     }
 };
 
-class MethodCallNode : public ASTNode {
+class method_call_node : public ast_node {
 public:
-    ASTNode* obj;
+    ast_node* obj;
     std::string method;
-    std::vector<ASTNode*> args;
+    std::vector<ast_node*> args;
 
-    MethodCallNode(ASTNode* o, const std::string& m, std::vector<ASTNode*> a)
+    method_call_node(ast_node* o, const std::string& m, std::vector<ast_node*> a)
         : obj(o), method(m), args(std::move(a)) {}
 
-    void print(int level = 0) override {
-        ASTNode::print(level);
-        cout << "MethodCall: ." << method << endl;
-        if (obj) obj->print(level + 1);
-        for (auto a : args) {
-            if (a) a->print(level + 1);
-        }
-    }
-
     Value eval(void* scope) override {
         return Value();
     }
 };
 
-typedef ASTNode        ast_node;
-typedef LiteralNode    literal_node;
-typedef IdNode         id_node;
-typedef AssignNode     assign_node;
-typedef BinaryExprNode binary_expr_node;
-typedef CallNode       call_node;
-typedef DotNode        dot_node;
-typedef MethodCallNode method_call_node;
-typedef MemberAssignNode member_assign_node;
+class print_node : public ast_node {
+public:
+    ast_node* expr;
+
+    print_node(ast_node* e) : expr(e) {}
+
+    Value eval(void* scope) override {
+        Value v = expr->eval(scope);
+        cout << v.toString() << endl;
+        return v;
+    }
+};
 
 #endif

@@ -18,8 +18,8 @@ public:
     Value getValue(const std::string& name) const {
         auto it = vals.find(name);
         if (it == vals.end()) {
-            std::cerr << "Runtime error: variable '" << name << "' has no value\n";
-            return Value(); // void
+            std::cerr << "Error: variable '" << name << "' has no value\n";
+            return Value(); 
         }
         return it->second;
     }

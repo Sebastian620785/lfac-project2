@@ -1,7 +1,0 @@
-bool sum(int a, int b) {
-  return a + b;
-}
-
-main() {
-  Print(sum(2, 3));
-}

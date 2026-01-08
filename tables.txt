@@ -14,15 +14,18 @@ Simboluri:
   oba : class A [variable]
   obb : class B [variable]
   s : string [variable]
+  x : int [variable]
+  z : int [variable]
 
 === Scope: class_A ===
 Parinte: Global
 Simboluri:
-  f : int [function]
+  fl : float [function]
   g : int [function]
   init : void [function]
   x : int [variable]
   y : int [variable]
+  z : float [variable]
 
 === Scope: func_init ===
 Parinte: class_A
@@ -34,17 +37,16 @@ Parinte: class_A
 Simboluri:
   z : int [parameter]
 
-=== Scope: func_f ===
+=== Scope: func_fl ===
 Parinte: class_A
 Simboluri:
-  val : int [parameter]
+  x : int [parameter]
 
 === Scope: func_f ===
 Parinte: Global
 Simboluri:
-  b : int [variable]
-  flag : bool [variable]
-  x : int [variable]
+  b : bool [parameter]
+  x : float [parameter]
   z : int [parameter]
 
 === Scope: class_B ===
@@ -64,13 +66,12 @@ Simboluri:
 === Scope: func_g ===
 Parinte: class_B
 Simboluri:
-  a : class A [variable]
-  x : int [variable]
   z : int [parameter]
 
 === Scope: func_f ===
 Parinte: class_B
 Simboluri:
+  var : int [variable]
   z : int [parameter]
 
 === Scope: func_bfunc ===
