@@ -20,7 +20,7 @@ public:
     bool b;
     std::string s;
 
-    bool hasReturn;   // FOARTE IMPORTANT
+    bool hasReturn; 
 
     Value();
     Value(int v);

@@ -16,11 +16,13 @@
 #include "ast.h"
 #include "SymTableStub.h"
 
-extern int yylex();
-extern int yylineno;
-void yyerror(const char* s);
+std::vector<std::pair<std::string, TypeInfo>> currentParams;
 
-ScopeManager scopeManager; 
+extern int yylex(); //citeste inputul, gaseste urmatorul token si returneaza codul numeric al acelui token
+extern int yylineno; //line number, tine minte nr liniei curente din care fisierul compileaza
+void yyerror(const char* s); //este apelat automat cand regulile gramaticale nu coincid cu ce a primit yylex
+
+ScopeManager scopeManager; //retine scopeul global, curent, scope-ul clasei, toate scopurile prin care am trecut
 ProgramNode* root = nullptr;
 
 bool isLValue(ast_node* node) {
@@ -28,7 +30,7 @@ bool isLValue(ast_node* node) {
     if (dynamic_cast<dot_node*>(node)) return true;
     return false;
 }
-
+//ast_node* node - expresie oarecare
 TypeInfo inferType(ast_node* node) {
     if (!node) return TypeInfo(TYPE_UNKNOWN);
 
@@ -41,13 +43,17 @@ TypeInfo inferType(ast_node* node) {
     }
 
     if (dynamic_cast<id_node*>(node)) {
-        id_node* id = dynamic_cast<id_node*>(node);
-        SymbolInfo* sym = scopeManager.currentScope->lookup(id->name);
-        if (!sym) return TypeInfo(TYPE_UNKNOWN); 
-        return sym->type;
-    }
+    id_node* id = dynamic_cast<id_node*>(node);
+    SymbolInfo* sym = scopeManager.currentScope->lookup(id->name);
+    
+    if (!sym) { 
+        string err = "Semantic Error: Variable '" + id->name + "' undefined.";
+        yyerror(err.c_str()); 
+        exit(1); 
+    } 
+    return sym->type;
+}
 
-    // Atribuire (ia tipul variabilei din stanga)
     if (dynamic_cast<assign_node*>(node)) {
         assign_node* asgn = dynamic_cast<assign_node*>(node);
         SymbolInfo* sym = scopeManager.currentScope->lookup(asgn->name);
@@ -55,7 +61,6 @@ TypeInfo inferType(ast_node* node) {
         return sym->type;
     }
 
-    // Expresii binare
     if (dynamic_cast<binary_expr_node*>(node)) {
         binary_expr_node* bin = dynamic_cast<binary_expr_node*>(node);
         TypeInfo leftT = inferType(bin->left);
@@ -83,12 +88,12 @@ TypeInfo inferType(ast_node* node) {
              id_node* idObj = dynamic_cast<id_node*>(dot->obj);
              SymbolInfo* symObj = scopeManager.currentScope->lookup(idObj->name);
              
-             // Verificam in clasa obiectului
+             //verificam in clasa obiectului
              if (symObj && symObj->type.type == TYPE_CLASS) {
                  SymbolInfo* memberSym = scopeManager.lookupInClass(symObj->type.className, dot->member);
                  if (memberSym) return memberSym->type;
              }
-             // Verificam in scope-ul clasei (pentru static/intern)
+             //verificam in scope-ul clasei (pentru static/intern)
              if (scopeManager.classScopes.count(idObj->name)) {
                  SymbolInfo* memberSym = scopeManager.lookupInClass(idObj->name, dot->member);
                  if (memberSym) return memberSym->type;
@@ -98,7 +103,7 @@ TypeInfo inferType(ast_node* node) {
     }
     
     if (dynamic_cast<member_assign_node*>(node)) {
-        // Tipul unei atribuiri este tipul valorii din dreapta
+        //tipul unei atribuiri este tipul valorii din dreapta
         member_assign_node* ma = dynamic_cast<member_assign_node*>(node);
         return inferType(ma->val);
     }
@@ -169,22 +174,35 @@ program
 
 
 global_list
-: /* empty */ { $$ = new std::vector<ast_node*>(); }
-| global_list var_decl ';'  { if ($2) $1->push_back($2); $$ = $1; }
-| global_list func_def      { if ($2) $1->push_back($2); $$ = $1; }
-| global_list class_def     { if ($2) $1->push_back($2); $$ = $1; }
+: /* empty */ 
+  { 
+    $$ = new std::vector<ast_node*>(); 
+  }
+
+| global_list var_decl ';'  
+  { 
+    if ($2) $1->push_back($2); $$ = $1; 
+  }
+
+| global_list func_def      
+  { 
+    if ($2) $1->push_back($2); $$ = $1; 
+  }
+  
+| global_list class_def     
+  { 
+    if ($2) $1->push_back($2); $$ = $1; 
+  }
 ;
 
-
-/* --- LOGICA PENTRU MAIN SCOPE --- */
 main_header
 : MAIN '(' ')' 
 {
-    // 1. Inregistram main in global
+    //inregistram main in global
     SymbolInfo mainSym("main", TypeInfo(TYPE_INT), "function");
     scopeManager.currentScope->addSymbol(mainSym);
     
-    // 2. Intram in scope (ASTA LIPSEA)
+    //intram in scope
     scopeManager.enterScope("func_main");
 }
 ;
@@ -192,7 +210,7 @@ main_header
 main_block
 : main_header '{' stmt_list '}'
 {
-    // 3. Iesim din scope DUPA ce am parsat body-ul
+    //iesim din scope DUPA ce am parsat body-ul
     scopeManager.exitScope();
 
     BlockNode* b = new BlockNode();
@@ -206,33 +224,36 @@ main_block
 
 var_decl
 : standard_type ID {
+    //daca gasim identificatorul in current scope
     if (scopeManager.currentScope->lookupCurrent(*$2)) {
         yyerror(("Semantic Error: Variable '" + *$2 + "' redeclared.").c_str()); exit(1);
     }
-    // Constructorul tau nu are parametru de value, deci il setam manual
+    //constructorul tau nu are parametru de value, deci il setam manual
     SymbolInfo info(*$2, *$1, "variable"); 
     scopeManager.currentScope->addSymbol(info);
 
     $$ = new VarDeclNode($1, *$2, nullptr);
     delete $2;
 }
+//verificam sa nu fie declarata din nou in current scope. extragem expr si o convertim in literal. pe baza lui, construim un obiect info, ce contine {ID, tip, "variabila"}, setam manual care este valoare expresiei(desigur daca e literal). daca tipul literalului nu coincide cu tipul standard_type, aruncam o eroare
+
 | standard_type ID '=' expr {
     if (scopeManager.currentScope->lookupCurrent(*$2)) {
         yyerror(("Semantic Error: Variable '" + *$2 + "' redeclared.").c_str()); exit(1);
     }
     
-    // Extragem valoarea pentru SymbolTable (tables.txt)
+    //extragem valoarea pentru SymbolTable (tables.txt)
     string valStr = "?";
     if (dynamic_cast<literal_node*>($4)) {
         valStr = dynamic_cast<literal_node*>($4)->val;
     }
     
-    // Adaugam in tabela cu valoare
+    //adaugam in tabela cu valoare
     SymbolInfo info(*$2, *$1, "variable");
     info.value = valStr; // Setam manual valoarea pentru ca constructorul nu o ia
     scopeManager.currentScope->addSymbol(info);
 
-    // Verificam tipurile
+    //verificam tipurile
     TypeInfo exprT = inferType($4);
     if (*$1 != exprT && exprT.type != TYPE_UNKNOWN) {
         yyerror(("Semantic Error: Type mismatch init '" + *$2 + "'.").c_str()); exit(1);
@@ -241,6 +262,7 @@ var_decl
     $$ = new VarDeclNode($1, *$2, $4);
     delete $2;
 }
+//crearea unui obiect pe baza unei clase. luam ca ex A a. verificam daca a nu a fost declarat din nou. Acum verificam daca A este declarat. Acum facem un obiect nou TypeInfo prin care introducem cu tipul A, numele a si factul ca e variabila. variabila aici e nullptr
 | ID ID {
     // Instantiere Obiect (Clasa variabila;)
     if (scopeManager.currentScope->lookupCurrent(*$2)) {
@@ -257,6 +279,7 @@ var_decl
     $$ = new VarDeclNode(t, *$2, nullptr);
     delete $1; delete $2;
 }
+//aici au loc aceleasi operatii ca si la ID ID, insa in loc de nullptr, asociem expresia
 | ID ID '=' expr {
     if (scopeManager.currentScope->lookupCurrent(*$2)) {
         yyerror(("Semantic Error: Variable '" + *$2 + "' redeclared.").c_str()); exit(1);
@@ -275,25 +298,36 @@ var_decl
 ;
 
 func_def
-  : standard_type ID '(' { 
+  : standard_type ID '(' {
+        //ne asiguram ca ID nu este redclarat altundeva 
         if (scopeManager.currentScope->lookupCurrent(*$2)) {
             yyerror(("Semantic Error: Function '" + *$2 + "' redeclared.").c_str()); exit(1);
         }
+        //facem un simbol de nume {ID, tip, cat = "functie"} si intram in scope-ul functiei
         SymbolInfo funcSym(*$2, *$1, "function");
         scopeManager.currentScope->addSymbol(funcSym); 
         scopeManager.enterScope("func_" + *$2); 
+        currentParams.clear();
     }
+    //
     param_list ')' {
         // Actualizam parametrii functiei in scope-ul parinte
         SymbolInfo* s = scopeManager.currentScope->getParent()->lookup(*$2);
         if(s) {
             for(const auto& tInfo : *$5) {
+
                 SymbolType st = SYM_UNKNOWN;
+
                 if(tInfo.type == TYPE_INT) st = SYM_INT;
+
                 else if(tInfo.type == TYPE_FLOAT) st = SYM_FLOAT;
+
                 else if(tInfo.type == TYPE_BOOL) st = SYM_BOOL;
+
                 else if(tInfo.type == TYPE_STRING) st = SYM_STRING;
+
                 else if(tInfo.type == TYPE_CLASS) st = SYM_CLASS;
+
                 s->paramTypes.push_back(st);
             }
         }
@@ -308,36 +342,48 @@ func_def
        for (auto s : *$9) if (s) b->addStatement(s);
        delete $9;
 
-       $$ = new FuncDefNode($1, fname, {}, b);
+      std::vector<std::string> paramNames;
+      for(auto p : currentParams) paramNames.push_back(p.first);
+
+
+      $$ = new FuncDefNode($1, fname, paramNames, b);
     }
  ;
 
+//in block_items, pusham un statement sau un var_decl
 block_items
 : /* empty */ { $$ = new std::vector<ast_node*>(); }
 | block_items statement { $1->push_back($2); $$ = $1; }
 | block_items var_decl ';' { $1->push_back($2); $$ = $1; }
 ;
 
+//returnam un vector gol de TypeInfo sau param_list_nonempty
 param_list
   : /* empty */         { $$ = new std::vector<TypeInfo>(); }
   | param_list_nonempty { $$ = $1; }
   ;
 
+//declaram un singur parametru sau mai multi parametri, pe care ii pusham recursiv
 param_list_nonempty
   : param_decl { $$ = new std::vector<TypeInfo>(); $$->push_back(*$1); }
   | param_list_nonempty ',' param_decl { $1->push_back(*$3); $$ = $1; }
   ;
 
+//verificăm dacă numele parametrului nu este duplicat în scope-ul local al funcției și îl înregistrăm ca simbol de tip "parameter"
 param_decl 
   : standard_type ID { 
         if (scopeManager.currentScope->lookupCurrent(*$2)) {
              yyerror("Semantic Error: Parameter redeclared."); exit(1);
         }
         scopeManager.currentScope->addSymbol(SymbolInfo(*$2, *$1, "parameter"));
+ 
+        currentParams.push_back({ *$2, *$1 });
+
         $$ = $1; delete $2; 
     }
   ;
 
+//verificam daca id-ul nu a fost refolosit in scope-ul curent. adaugam un simbol specific clasei si intram in scope-ul ei. de asemenea salvam scope-ul
 class_def
   : CLASS ID '{' { 
       if (scopeManager.currentScope->lookupCurrent(*$2)) {
@@ -345,8 +391,14 @@ class_def
       }
       scopeManager.currentScope->addSymbol(SymbolInfo(*$2, TypeInfo(*$2), "class"));
       scopeManager.enterScope("class_" + *$2);
+
+      //salvam scope-ul pentru a-l putea revizita, sa vedem daca o variabila exista in clasa. A x => nu vrem ca x sa fie redeclarat in alta clasa
+
       scopeManager.saveClassScope(*$2);
     }
+
+    //aici se proceseaza membrii/metodele clasei, iar dupa ce iesim din scope, creez obiectul din arborele sintactic care reprezinta clasa 
+
     class_member_list '}' ';' {
       scopeManager.exitScope();
       std::string cname = *$2;
@@ -361,9 +413,12 @@ class_member_list
   | class_member_list func_def
   ;
 
+//construiește un vector<ast_node*> care ține pointeri către toate instrucțiunile din bloc.
+
 stmt_list
 : /* empty */ { $$ = new std::vector<ast_node*>(); }
 | stmt_list statement { $1->push_back($2); $$ = $1; }
+| stmt_list var_decl ';' { $1->push_back($2); $$ = $1; }
 ;
 
 statement
@@ -420,16 +475,16 @@ expr
     delete $1;
     }
   | expr '.' ID '=' expr {
-      // 1. Verificam daca membrul exista (folosim logica de la dot_node)
+      //verificam daca membrul exista (folosim logica de la dot_node)
       dot_node* tempDot = new dot_node($1, *$3);
       TypeInfo memberType = inferType(tempDot);
-      delete tempDot; // Curatam, a fost doar de test
+      delete tempDot; //curatam, a fost doar de test
 
       if (memberType.type == TYPE_UNKNOWN) {
           yyerror("Semantic Error: Invalid member access in assignment."); exit(1);
       }
 
-      // 2. Verificam daca valoarea atribuita are tipul corect
+      //verificam daca valoarea atribuita are tipul corect
       TypeInfo valType = inferType($5);
       if (memberType != valType && valType.type != TYPE_UNKNOWN) {
           yyerror("Semantic Error: Type mismatch in member assignment."); exit(1);
@@ -446,17 +501,17 @@ expr
     }
   | expr '-' expr     { 
        TypeInfo t1 = inferType($1); TypeInfo t2 = inferType($3);
-       if (t1 != t2) { yyerror("Semantic Error: Type mismatch (+)."); exit(1); }
+       if (t1 != t2) { yyerror("Semantic Error: Type mismatch (-)."); exit(1); }
        $$ = new binary_expr_node("-", $1, $3); 
     }
   | expr '*' expr     { 
        TypeInfo t1 = inferType($1); TypeInfo t2 = inferType($3);
-       if (t1 != t2) { yyerror("Semantic Error: Type mismatch (+)."); exit(1); }
+       if (t1 != t2) { yyerror("Semantic Error: Type mismatch (*)."); exit(1); }
        $$ = new binary_expr_node("*", $1, $3); 
     }
   | expr '/' expr     { 
        TypeInfo t1 = inferType($1); TypeInfo t2 = inferType($3);
-       if (t1 != t2) { yyerror("Semantic Error: Type mismatch (+)."); exit(1); }
+       if (t1 != t2) { yyerror("Semantic Error: Type mismatch (/)."); exit(1); }
        $$ = new binary_expr_node("/", $1, $3); 
     }
   | expr AND expr     { $$ = new binary_expr_node("&&", $1, $3); }
@@ -470,19 +525,37 @@ expr
   | NOT expr          { $$ = new binary_expr_node("!", $2, nullptr); }
   | '(' expr ')'      { $$ = $2; }
   | ID '(' arg_list_opt ')' { 
+
       SymbolInfo* f = scopeManager.currentScope->lookup(*$1);
-      if (!f) { yyerror("Semantic Error: Function undefined."); exit(1); }
-      if (f->paramTypes.size() != $3->size()) { yyerror("Semantic Error: Arg count mismatch."); exit(1); }
+
+      if (!f) { 
+        yyerror("Semantic Error: Function undefined."); 
+        exit(1); 
+      }
+      if (f->paramTypes.size() != $3->size()) { 
+        yyerror("Semantic Error: Arg count mismatch."); 
+        exit(1); 
+      }
       for(size_t i=0; i<$3->size(); ++i) {
+
           TypeInfo argT = inferType((*$3)[i]);
+
           if (argT.type != TYPE_UNKNOWN) {
               bool match = false;
+
               if (argT.type == TYPE_INT && f->paramTypes[i] == SYM_INT) match = true;
+
               else if (argT.type == TYPE_FLOAT && f->paramTypes[i] == SYM_FLOAT) match = true;
+
               else if (argT.type == TYPE_BOOL && f->paramTypes[i] == SYM_BOOL) match = true;
+
               else if (argT.type == TYPE_STRING && f->paramTypes[i] == SYM_STRING) match = true;
               else if (argT.type == TYPE_CLASS && f->paramTypes[i] == SYM_CLASS) match = true;
-              if(!match) { yyerror("Semantic Error: Arg type mismatch."); exit(1); }
+
+              if(!match) { 
+                yyerror("Semantic Error: Arg type mismatch."); 
+                exit(1); 
+                }
           }
       }
       $$ = new call_node(*$1, *$3,f->type); delete $1; delete $3;
@@ -494,8 +567,8 @@ expr
        $$ = node; delete $3; 
     }
   | expr '.' ID '(' arg_list_opt ')' {
-  // 1) verifici că expr e obiect de clasă și metoda există
-  // 2) verifici parametrii metodei
+  //verifici că expr e obiect de clasă și metoda există
+  //verifici parametrii metodei
   $$ = new method_call_node($1, *$3, *$5);
   delete $3;
   delete $5;
@@ -529,10 +602,8 @@ void yyerror(const char* s) {
 
 int main() {
   if (yyparse() == 0) {
-    // --- PARTEA TA: Scrie tabelele de simboluri ---
     scopeManager.dumpAllScopes("tables.txt");
 
-    // --- PARTEA COLEGULUI: Evaluare AST ---
     if (root) {
       SymTableStub runtime;
       // root->print(); // Decomenteaza pt debug AST

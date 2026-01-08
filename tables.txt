@@ -1,85 +1,85 @@
 
-===== SCOPE: Global =====
-Parent: none
-Symbols:
-  A : class A (class)
-  B : class B (class)
-  b1 : bool (variable)
-  b2 : bool (variable)
-  bfunc : string (function) [Params: 2]
-  f : int (function) [Params: 1]
-  fx : float (variable)
-  ix : int (variable)
-  main : int (function) [Params: 0]
-  oba : class A (variable)
-  obb : class B (variable)
-  s : string (variable)
+=== Scope: Global ===
+Parinte: Global
+Simboluri:
+  A : class A [class]
+  B : class B [class]
+  b1 : bool [variable]
+  b2 : bool [variable]
+  bfunc : string [function]
+  f : int [function]
+  fx : float [variable]
+  ix : int [variable]
+  main : int [function]
+  oba : class A [variable]
+  obb : class B [variable]
+  s : string [variable]
 
-===== SCOPE: class_A =====
-Parent: Global
-Symbols:
-  f : int (function) [Params: 1]
-  g : int (function) [Params: 1]
-  init : void (function) [Params: 0]
-  x : int (variable)
-  y : int (variable)
+=== Scope: class_A ===
+Parinte: Global
+Simboluri:
+  f : int [function]
+  g : int [function]
+  init : void [function]
+  x : int [variable]
+  y : int [variable]
 
-===== SCOPE: func_init =====
-Parent: class_A
-Symbols:
-  (none)
+=== Scope: func_init ===
+Parinte: class_A
+Simboluri:
+  (gol)
 
-===== SCOPE: func_g =====
-Parent: class_A
-Symbols:
-  z : int (parameter)
+=== Scope: func_g ===
+Parinte: class_A
+Simboluri:
+  z : int [parameter]
 
-===== SCOPE: func_f =====
-Parent: class_A
-Symbols:
-  val : int (parameter)
+=== Scope: func_f ===
+Parinte: class_A
+Simboluri:
+  val : int [parameter]
 
-===== SCOPE: func_f =====
-Parent: Global
-Symbols:
-  b : int (variable) [Val: 10]
-  flag : bool (variable)
-  x : int (variable) [Val: 5]
-  z : int (parameter)
+=== Scope: func_f ===
+Parinte: Global
+Simboluri:
+  b : int [variable]
+  flag : bool [variable]
+  x : int [variable]
+  z : int [parameter]
 
-===== SCOPE: class_B =====
-Parent: Global
-Symbols:
-  b : int (variable)
-  bb : int (variable)
-  f : int (function) [Params: 1]
-  g : int (function) [Params: 1]
-  init : void (function) [Params: 0]
+=== Scope: class_B ===
+Parinte: Global
+Simboluri:
+  b : int [variable]
+  bb : int [variable]
+  f : int [function]
+  g : int [function]
+  init : void [function]
 
-===== SCOPE: func_init =====
-Parent: class_B
-Symbols:
-  (none)
+=== Scope: func_init ===
+Parinte: class_B
+Simboluri:
+  (gol)
 
-===== SCOPE: func_g =====
-Parent: class_B
-Symbols:
-  a : class A (variable)
-  x : int (variable)
-  z : int (parameter)
+=== Scope: func_g ===
+Parinte: class_B
+Simboluri:
+  a : class A [variable]
+  x : int [variable]
+  z : int [parameter]
 
-===== SCOPE: func_f =====
-Parent: class_B
-Symbols:
-  z : int (parameter)
+=== Scope: func_f ===
+Parinte: class_B
+Simboluri:
+  z : int [parameter]
 
-===== SCOPE: func_bfunc =====
-Parent: Global
-Symbols:
-  b : bool (parameter)
-  s : string (parameter)
+=== Scope: func_bfunc ===
+Parinte: Global
+Simboluri:
+  b : bool [parameter]
+  s : string [parameter]
 
-===== SCOPE: func_main =====
-Parent: Global
-Symbols:
-  (none)
+=== Scope: func_main ===
+Parinte: Global
+Simboluri:
+  (gol)

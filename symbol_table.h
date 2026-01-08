@@ -36,13 +36,13 @@ static int getTypeSize(SymbolType t) {
 
 class SymbolInfo {
 public:
-    string name;
-    TypeInfo type; 
-    string category; 
-    string className;
-    string value; 
+    string name; //id
+    TypeInfo type; //tip
+    string category; //functie, clasa, varibila 
+    string className; //nume clasa 
+    string value; //valoare
     int size; int offset;
-    vector<SymbolType> paramTypes; 
+    vector<SymbolType> paramTypes; //(int, float, ...) 
 
     SymbolInfo() : size(0), offset(0) {}
     SymbolInfo(string n, TypeInfo t, string cat) : name(n), type(t), category(cat) {
@@ -56,11 +56,11 @@ public:
         offset = 0;
     }
 };
-
+//definierea unui singur scope - if, while
 class SymbolTable {
-    map<string, SymbolInfo> symbols;
-    SymbolTable* parent;
-    string scopeName;
+    map<string, SymbolInfo> symbols; //{id, symbolInfo}
+    SymbolTable* parent; 
+    string scopeName; //"global", "func_main", etc. cand apelez dumpAllScopes, acesta este inclus in tables.txt
     int currentMemoryOffset; 
 public:
 
@@ -74,6 +74,7 @@ public:
         return true;
     }
 
+    //actulizam semnatura functiei, adaugand tipurile parametrilor, pentru ca apoi sa comparam cu variabilele pasate la apel de functie 
     bool updateFunctionParams(string name, vector<TypeInfo> params) {
         if (symbols.count(name)) {
             for(auto p : params) {
@@ -89,6 +90,7 @@ public:
 
     string getScopeName() { return scopeName; }
     
+    //ne uitam daca exista variabila
     SymbolInfo* lookup(string name) {
         if (symbols.count(name)) return &symbols[name];
         return parent ? parent->lookup(name) : NULL;
@@ -98,28 +100,39 @@ public:
         return symbols.count(name) ? &symbols[name] : NULL;
     }
 
-    SymbolTable* getParent() { return parent; }
-    
+    SymbolTable* getParent() { 
+        return parent; 
+    }
+    //inregistram stats despre scope-ul la care ne aflam
     void dump(ofstream& out) {
         if (!out.is_open()) return;
 
-        out << endl << "===== SCOPE: " << scopeName << " =====" << endl;
-        if (parent) out << "Parent: " << parent->getScopeName() << endl;
-        else out << "Parent: none" << endl;
-        
-        out << "Symbols:" << endl;
-        if (symbols.empty()) out << "  (none)" << endl;
+        out << "\n=== Scope: " << scopeName << " ===" << endl;
+    
+        if (parent != nullptr) 
+            out << "Parinte: " << parent->getScopeName() << endl;
+        else 
+            out << "Parinte: Global" << endl;
 
-        for (auto const& [key, val] : symbols) {
-            out << "  " << val.name << " : " << val.type.typeToString();
-            out << " (" << val.category << ")";
-            
-            if (val.category == "variable" && !val.value.empty() && val.value != "?") {
-                out << " [Val: " << val.value << "]";
+        out << "Simboluri:" << endl;
+
+        if (symbols.empty()) {
+            out << "  (gol)" << endl;
+            return;
+        }
+
+        for (auto& entry : symbols) {
+            SymbolInfo& s = entry.second; 
+            out << "  " << s.name << " : " << s.type.typeToString();
+            out << " [" << s.category << "]";
+
+            if (s.category == "variabila" && s.value != "") {
+                out << " = " << s.value;
             }
-            if (val.category == "function") {
-                out << " [Params: " << val.paramTypes.size() << "]";
+            if (s.category == "functia") {
+                out << " (argumente: " << s.paramTypes.size() << ")";
             }
+        
             out << endl;
         }
     }
@@ -156,7 +169,7 @@ public:
     void saveClassScope(string className) { 
         classScopes[className] = currentScope; 
     }
-
+    //cauta daca avem o clasa definita cu numele clasei date. daca da, cautam membrul dorit
     SymbolInfo* lookupInClass(string className, string memberName) { 
         return classScopes.count(className) ? classScopes[className]->lookupCurrent(memberName) : NULL; 
     }
@@ -166,7 +179,7 @@ public:
         if(!out.is_open()) return;
         for(auto s : allScopes) s->dump(out);
         out.close();
-        cout << "[Info] Symbol tables dumped to " << filename << endl;
+        cout << "[Info] tabel simbol a fost aruncat in " << filename << endl;
     }
 };
 #endif

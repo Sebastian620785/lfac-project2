@@ -146,10 +146,11 @@ public:
     TypeInfo* returnType;
     string name;
     vector<VarDeclNode*> params;
+    std::vector<std::string> paramNames;
     BlockNode* body;
 
-    FuncDefNode(TypeInfo* rt, string n, vector<VarDeclNode*> p, BlockNode* b)
-        : returnType(rt), name(n), params(p), body(b) {}
+    FuncDefNode(TypeInfo* type, std::string n, std::vector<std::string> params, BlockNode* b)
+        : returnType(type), name(n), paramNames(params), body(b) {}
 
     void print(int level = 0) override {
         ASTNode::print(level);
@@ -534,7 +535,7 @@ class DotNode : public ASTNode {
 public:
     ASTNode* obj;
     string member;
-
+    //obj1.obj2. ... .objn.member
     DotNode(ASTNode* o, string m) : obj(o), member(m) {}
 
     void print(int level = 0) override {
@@ -571,7 +572,6 @@ public:
     }
 };
 
-// ==== ALIAS-uri pentru parser (comp.y) ====
 typedef ASTNode        ast_node;
 typedef LiteralNode    literal_node;
 typedef IdNode         id_node;
